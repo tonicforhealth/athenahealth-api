@@ -1,0 +1,7 @@
+/.puli/
+/bin/
+/build/
+/vendor/
+/composer.lock
+/phpunit.xml
+/puli.json
