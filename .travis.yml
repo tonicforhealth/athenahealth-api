@@ -23,6 +23,7 @@ matrix:
 
 before_install:
   - if [[ $TRAVIS_PHP_VERSION != hhvm && $COVERAGE != yes ]]; then phpenv config-rm xdebug.ini; fi;
+  - composer self-update
 
 install:
   - composer install $COMPOSER_FLAGS --prefer-dist --no-interaction
