@@ -26,4 +26,8 @@ before_install:
 install:
   - composer install --prefer-dist --no-interaction
 
-script: if [[ $COVERAGE = yes ]]; then bin/phpunit --verbose; else bin/phpunit --verbose --no-coverage; fi
+script:
+  - if [[ $COVERAGE = yes ]]; then bin/phpunit --verbose; else bin/phpunit --verbose --no-coverage; fi
+
+after_script:
+  - if [[ $COVERAGE = yes ]]; then wget https://scrutinizer-ci.com/ocular.phar && php ocular.phar code-coverage:upload --format=php-clover build/coverage.xml; fi
