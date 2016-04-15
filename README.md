@@ -1,4 +1,9 @@
 # PHP athenahealth API
+[![License](https://img.shields.io/github/license/tonicforhealth/athenahealth-api.svg?maxAge=2592000)](LICENSE.md)
+[![Build Status](https://travis-ci.org/tonicforhealth/athenahealth-api.svg?branch=master)](https://travis-ci.org/tonicforhealth/athenahealth-api)
+[![Code Coverage](https://scrutinizer-ci.com/g/tonicforhealth/athenahealth-api/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/tonicforhealth/athenahealth-api/?branch=master)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/tonicforhealth/athenahealth-api/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/tonicforhealth/athenahealth-api/?branch=master)
+[![SensioLabsInsight](https://insight.sensiolabs.com/projects/e7c5255b-43bc-4f0a-a0b9-f3176ea5d2e8/mini.png)](https://insight.sensiolabs.com/projects/e7c5255b-43bc-4f0a-a0b9-f3176ea5d2e8)
 
 A simple wrapper for [athenahealth API](http://www.athenahealth.com/developer-portal) services, written with PHP5.
 
