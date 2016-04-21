@@ -7,24 +7,32 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-namespace TonicForHealth\AthenaHealth\Tests\ApiMethod\Practice;
+namespace TonicForHealth\AthenaHealth\Tests\ApiMethod\Appointment;
 
-use TonicForHealth\AthenaHealth\ApiMethod\Practice\Departments;
+use TonicForHealth\AthenaHealth\ApiMethod\Appointment\AppointmentMethod;
 use TonicForHealth\AthenaHealth\Tests\ApiMethod\AbstractHttpGetMethodTest;
 
 /**
- * Class DepartmentsTest
+ * Class AppointmentMethodTest
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-class DepartmentsTest extends AbstractHttpGetMethodTest
+class AppointmentMethodTest extends AbstractHttpGetMethodTest
 {
+    /**
+     * @var int
+     */
+    protected $appointmentId;
+
     /**
      * {@inheritdoc}
      */
     protected function getApiMethod()
     {
-        return new Departments();
+        $appointment = new AppointmentMethod();
+        $appointment->setAppointmentId(static::FIXTURES_APPOINTMENT_ID);
+
+        return $appointment;
     }
 
     /**
@@ -32,6 +40,6 @@ class DepartmentsTest extends AbstractHttpGetMethodTest
      */
     protected function getExpectedRequestUri()
     {
-        return '/195900/departments';
+        return '/195900/appointments/654321';
     }
 }

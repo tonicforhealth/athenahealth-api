@@ -11,21 +11,26 @@ namespace TonicForHealth\AthenaHealth\ApiMethod\Practice;
 
 use TonicForHealth\AthenaHealth\ApiMethod\AbstractApiMethod;
 use TonicForHealth\AthenaHealth\ApiMethod\HttpGetMethodTrait;
+use TonicForHealth\AthenaHealth\ApiMethod\CollectionMethodInterface;
+use TonicForHealth\AthenaHealth\ApiMethod\LimitAndOffsetTrait;
 
 /**
- * Class Ping
+ * Class DepartmentsMethod
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-class Ping extends AbstractApiMethod
+class DepartmentsMethod extends AbstractApiMethod implements CollectionMethodInterface
 {
     use HttpGetMethodTrait;
+    use LimitAndOffsetTrait;
 
     /**
      * {@inheritdoc}
      */
     public function getRequestUri()
     {
-        return sprintf('/%d/ping', $this->practiceId);
+        $requestUri = sprintf('/%d/departments', $this->practiceId);
+
+        return $this->applyLimitAndOffset($requestUri);
     }
 }

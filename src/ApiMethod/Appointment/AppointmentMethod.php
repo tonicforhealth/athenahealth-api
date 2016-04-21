@@ -12,11 +12,11 @@ namespace TonicForHealth\AthenaHealth\ApiMethod\Appointment;
 use TonicForHealth\AthenaHealth\ApiMethod\HttpGetMethodTrait;
 
 /**
- * Class Appointment
+ * Class AppointmentMethod
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-class Appointment extends AbstractAppointmentMethod
+class AppointmentMethod extends AbstractAppointmentMethod
 {
     use HttpGetMethodTrait;
 

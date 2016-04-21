@@ -12,11 +12,11 @@ namespace TonicForHealth\AthenaHealth\ApiMethod\Patient;
 use TonicForHealth\AthenaHealth\ApiMethod\HttpPostMethodTrait;
 
 /**
- * Class CollectPayment
+ * Class CollectPaymentMethod
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-class CollectPayment extends AbstractPatientMethod
+class CollectPaymentMethod extends AbstractPatientMethod
 {
     use HttpPostMethodTrait;
 

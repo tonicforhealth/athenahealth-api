@@ -9,32 +9,22 @@
  */
 namespace TonicForHealth\AthenaHealth\Tests\ApiMethod\Practice;
 
-use TonicForHealth\AthenaHealth\ApiMethod\Practice\PracticeInfo;
+use TonicForHealth\AthenaHealth\ApiMethod\Practice\PingMethod;
 use TonicForHealth\AthenaHealth\Tests\ApiMethod\AbstractHttpGetMethodTest;
 
 /**
- * Class PracticeInfoTest
+ * Class PingMethodTest
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-class PracticeInfoTest extends AbstractHttpGetMethodTest
+class PingMethodTest extends AbstractHttpGetMethodTest
 {
-    /**
-     * @test
-     */
-    public function shouldGetWithSpecialId()
-    {
-        $this->apiMethod = $this->getApiMethod();
-
-        static::assertEquals('/1/practiceinfo', $this->apiMethod->getRequestUri());
-    }
-
     /**
      * {@inheritdoc}
      */
     protected function getApiMethod()
     {
-        return new PracticeInfo();
+        return new PingMethod();
     }
 
     /**
@@ -42,6 +32,6 @@ class PracticeInfoTest extends AbstractHttpGetMethodTest
      */
     protected function getExpectedRequestUri()
     {
-        return '/195900/practiceinfo';
+        return '/195900/ping';
     }
 }

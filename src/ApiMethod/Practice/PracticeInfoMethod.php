@@ -15,12 +15,14 @@ use TonicForHealth\AthenaHealth\ApiMethod\CollectionMethodInterface;
 use TonicForHealth\AthenaHealth\ApiMethod\LimitAndOffsetTrait;
 
 /**
- * Class Departments
+ * Class PracticeInfoMethod
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-class Departments extends AbstractApiMethod implements CollectionMethodInterface
+class PracticeInfoMethod extends AbstractApiMethod implements CollectionMethodInterface
 {
+    const SPECIAL_PRACTICE_ID = 1;
+
     use HttpGetMethodTrait;
     use LimitAndOffsetTrait;
 
@@ -29,7 +31,7 @@ class Departments extends AbstractApiMethod implements CollectionMethodInterface
      */
     public function getRequestUri()
     {
-        $requestUri = sprintf('/%d/departments', $this->practiceId);
+        $requestUri = sprintf('/%d/practiceinfo', $this->practiceId ?: self::SPECIAL_PRACTICE_ID);
 
         return $this->applyLimitAndOffset($requestUri);
     }

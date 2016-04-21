@@ -9,22 +9,22 @@
  */
 namespace TonicForHealth\AthenaHealth\Tests\ApiMethod\Practice;
 
-use TonicForHealth\AthenaHealth\ApiMethod\Practice\Ping;
+use TonicForHealth\AthenaHealth\ApiMethod\Practice\DepartmentsMethod;
 use TonicForHealth\AthenaHealth\Tests\ApiMethod\AbstractHttpGetMethodTest;
 
 /**
- * Class PingTest
+ * Class DepartmentsMethodTest
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-class PingTest extends AbstractHttpGetMethodTest
+class DepartmentsMethodTest extends AbstractHttpGetMethodTest
 {
     /**
      * {@inheritdoc}
      */
     protected function getApiMethod()
     {
-        return new Ping();
+        return new DepartmentsMethod();
     }
 
     /**
@@ -32,6 +32,6 @@ class PingTest extends AbstractHttpGetMethodTest
      */
     protected function getExpectedRequestUri()
     {
-        return '/195900/ping';
+        return '/195900/departments';
     }
 }

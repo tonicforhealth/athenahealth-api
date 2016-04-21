@@ -9,15 +9,15 @@
  */
 namespace TonicForHealth\AthenaHealth\Tests\ApiMethod\Patient;
 
-use TonicForHealth\AthenaHealth\ApiMethod\Patient\CollectPayment;
+use TonicForHealth\AthenaHealth\ApiMethod\Patient\CollectPaymentMethod;
 use TonicForHealth\AthenaHealth\Tests\ApiMethod\AbstractHttpPostMethodTest;
 
 /**
- * Class CollectPaymentTest
+ * Class CollectPaymentMethodTest
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-class CollectPaymentTest extends AbstractHttpPostMethodTest
+class CollectPaymentMethodTest extends AbstractHttpPostMethodTest
 {
     /**
      * {@inheritdoc}
@@ -29,7 +29,7 @@ class CollectPaymentTest extends AbstractHttpPostMethodTest
             'field2' => 'value2',
         ];
 
-        $collectPayment = new CollectPayment();
+        $collectPayment = new CollectPaymentMethod();
         $collectPayment->setPatientId(static::FIXTURES_PATIENT_ID)->setRequestFields($requestFields);
 
         return $collectPayment;
