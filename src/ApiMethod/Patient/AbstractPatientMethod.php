@@ -24,7 +24,7 @@ abstract class AbstractPatientMethod extends AbstractApiMethod
     protected $patientId;
 
     /**
-     * {@inheritdoc}
+     * @param int $patientId
      *
      * @return $this
      */

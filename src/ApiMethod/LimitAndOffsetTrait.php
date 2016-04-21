@@ -27,7 +27,7 @@ trait LimitAndOffsetTrait
     protected $offset;
 
     /**
-     * @see LimitAndOffsetInterface::setLimit()
+     * @see CollectionMethodInterface::setLimit()
      *
      * @param int $limit
      *
@@ -41,7 +41,7 @@ trait LimitAndOffsetTrait
     }
 
     /**
-     * @see LimitAndOffsetInterface::setOffset()
+     * @see CollectionMethodInterface::setOffset()
      *
      * @param int $offset
      *

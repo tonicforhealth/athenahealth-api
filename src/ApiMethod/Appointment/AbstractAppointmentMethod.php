@@ -24,7 +24,7 @@ abstract class AbstractAppointmentMethod extends AbstractApiMethod
     protected $appointmentId;
 
     /**
-     * {@inheritdoc}
+     * @param int $appointmentId
      *
      * @return $this
      */
