@@ -9,7 +9,7 @@
  */
 namespace TonicForHealth\AthenaHealth\Authenticator;
 
-use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
+use Http\Message\Authentication;
 
 /**
  * Interface AuthenticatorInterface
@@ -19,11 +19,9 @@ use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
 interface AuthenticatorInterface
 {
     /**
-     * @param HttpClient $httpClient
-     *
-     * @return HttpClient
+     * @return Authentication
      *
      * @throws \Http\Client\Exception
      */
-    public function authenticate(HttpClient $httpClient);
+    public function getAuthentication();
 }

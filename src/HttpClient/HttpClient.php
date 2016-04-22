@@ -10,12 +10,14 @@
 namespace TonicForHealth\AthenaHealth\HttpClient;
 
 use Http\Client\Common\HttpMethodsClient;
-use Http\Client\HttpClient as HttpClientInterface;
-use Http\Discovery\HttpClientDiscovery;
-use Http\Discovery\MessageFactoryDiscovery;
-use Http\Message\Authentication;
-use Http\Message\MessageFactory as MessageFactoryInterface;
+use Http\Client\HttpClient as BaseHttpClient;
+use Http\Client\Plugin\ErrorPlugin;
+use Http\Client\Plugin\Exception\ClientErrorException;
+use Http\Client\Plugin\Exception\ServerErrorException;
+use Http\Client\Plugin\PluginClient;
+use Http\Message\MessageFactory;
 use Psr\Http\Message\RequestInterface;
+use TonicForHealth\AthenaHealth\Authenticator\AuthenticatorInterface;
 
 /**
  * Class HttpClient
@@ -25,42 +27,71 @@ use Psr\Http\Message\RequestInterface;
 class HttpClient extends HttpMethodsClient
 {
     /**
-     * @var Authentication
+     * @var string
      */
-    protected $authentication;
+    protected $baseUri;
+
+    /**
+     * @var AuthenticatorInterface
+     */
+    protected $authenticator;
 
     /**
      * {@inheritdoc}
      */
-    public function __construct(HttpClientInterface $httpClient = null, MessageFactoryInterface $messageFactory = null)
+    public function __construct(BaseHttpClient $httpClient, MessageFactory $messageFactory)
     {
-        $httpClient = $httpClient ?: HttpClientDiscovery::find();
-        $messageFactory = $messageFactory ?: MessageFactoryDiscovery::find();
+        /** @noinspection ExceptionsAnnotatingAndHandlingInspection */
+        $pluginClient = new PluginClient($httpClient, [new ErrorPlugin()]);
 
-        parent::__construct($httpClient, $messageFactory);
+        parent::__construct($pluginClient, $messageFactory);
     }
 
     /**
-     * @param Authentication $authentication
+     * @param string $baseUri
      *
      * @return $this
      */
-    public function setAuthentication(Authentication $authentication)
+    public function setBaseUri($baseUri)
     {
-        $this->authentication = $authentication;
+        $this->baseUri = rtrim($baseUri, '/');
+
+        return $this;
+    }
+
+    /**
+     * @param AuthenticatorInterface $authenticator
+     *
+     * @return $this
+     */
+    public function setAuthenticator(AuthenticatorInterface $authenticator)
+    {
+        $this->authenticator = $authenticator;
 
         return $this;
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @throws ClientErrorException If response status code is a 4xx
+     * @throws ServerErrorException If response status code is a 5xx
+     */
+    public function send($method, $uri, array $headers = [], $body = null)
+    {
+        return parent::send($method, sprintf('%s%s', $this->baseUri, $uri), $headers, $body);
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @throws ClientErrorException If response status code is a 4xx
+     * @throws ServerErrorException If response status code is a 5xx
      */
     public function sendRequest(RequestInterface $request)
     {
-        if (null !== $this->authentication) {
-            $request = $this->authentication->authenticate($request);
-        }
+        $authentication = $this->authenticator->getAuthentication();
 
-        return parent::sendRequest($request);
+        return parent::sendRequest($authentication->authenticate($request));
     }
 }

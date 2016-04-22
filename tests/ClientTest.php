@@ -9,232 +9,125 @@
  */
 namespace TonicForHealth\AthenaHealth\Tests;
 
-use GuzzleHttp\Psr7\Response;
-use TonicForHealth\AthenaHealth\API\Appointments;
-use TonicForHealth\AthenaHealth\API\Patients;
-use TonicForHealth\AthenaHealth\API\Practice;
-use TonicForHealth\AthenaHealth\Authenticator\AuthenticatorInterface;
-use TonicForHealth\AthenaHealth\Authenticator\VoidAuthenticator;
+use TonicForHealth\AthenaHealth\Api\PracticeInterface;
+use TonicForHealth\AthenaHealth\ApiEndpoint\PracticeEndpoint;
+use TonicForHealth\AthenaHealth\ApiMethod\ApiMethodInterface;
+use TonicForHealth\AthenaHealth\ApiMethod\Practice\PracticeInfoMethod;
 use TonicForHealth\AthenaHealth\Client;
-use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
 
 /**
  * Class ClientTest
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-class ClientTest extends \PHPUnit_Framework_TestCase
+class ClientTest extends ApiTestCase
 {
     /**
      * @test
-     * @small
-     * @dataProvider providerRequestUri
-     *
-     * @param string $baseUri
-     * @param string $uri
-     * @param string $expectedUri
      */
-    public function shouldAuthenticateAndGet($baseUri, $uri, $expectedUri)
+    public function shouldGetPractice()
     {
-        $headers = ['X-Some-Header' => microtime(true)];
-        $response = new Response();
+        $client = new Client($this->getHttpClientMock([]));
 
-        $httpClientMock = $this->getHttpClientMock(['get']);
-        $httpClientMock->expects(static::once())
-            ->method('get')
-            ->with($expectedUri, $headers)
-            ->willReturn($response);
+        /** @var PracticeInterface|PracticeEndpoint $practice */
+        $practice = $client->practice($this->practiceId);
 
-        $authenticatorMock = $this->getAuthenticatorMock($httpClientMock);
-
-        $apiClient = new Client($httpClientMock, $authenticatorMock);
-        $apiClient->setBaseUri($baseUri);
-
-        static::assertSame($response, $apiClient->get($uri, $headers));
+        static::assertInstanceOf(PracticeInterface::class, $practice);
+        static::assertInstanceOf(PracticeEndpoint::class, $practice);
+        static::assertEquals($this->practiceId, $practice->getPracticeId());
     }
 
     /**
      * @test
-     * @small
-     * @dataProvider providerRequestUri
-     *
-     * @param string $baseUri
-     * @param string $uri
-     * @param string $expectedUri
      */
-    public function shouldAuthenticateAndPost($baseUri, $uri, $expectedUri)
+    public function shouldSendRequest()
     {
-        $headers = ['X-Some-Header' => microtime(true)];
-        $body = md5(microtime(true));
-        $response = new Response();
+        /** @var \PHPUnit_Framework_MockObject_MockObject|ApiMethodInterface $apiMethod */
+        $apiMethod = $this->getMockForAbstractClass(ApiMethodInterface::class);
 
-        $httpClientMock = $this->getHttpClientMock(['post']);
-        $httpClientMock->expects(static::once())
-            ->method('post')
-            ->with($expectedUri, $headers, $body)
-            ->willReturn($response);
+        $apiMethod->expects(static::once())
+            ->method('getRequestMethod')
+            ->willReturn('RequestMethod');
 
-        $authenticatorMock = $this->getAuthenticatorMock($httpClientMock);
+        $apiMethod->expects(static::once())
+            ->method('getRequestUri')
+            ->willReturn('RequestUri');
 
-        $apiClient = new Client($httpClientMock, $authenticatorMock);
-        $apiClient->setBaseUri($baseUri);
+        $apiMethod->expects(static::once())
+            ->method('getRequestHeaders')
+            ->willReturn(['RequestHeaders']);
 
-        static::assertSame($response, $apiClient->post($uri, $headers, $body));
-    }
+        $apiMethod->expects(static::once())
+            ->method('getRequestBody')
+            ->willReturn('RequestBody');
 
-    /**
-     * @see shouldAuthenticateAndGet
-     * @see shouldAuthenticateAndPost
-     *
-     * @return array
-     */
-    public function providerRequestUri()
-    {
-        return [
-            ['', '/some-path', '/some-path'],
-            ['http://localhost', '/some-path', 'http://localhost/some-path'],
-            ['http://localhost/', '/some-path', 'http://localhost/some-path'],
-        ];
+        $httpClient = $this->getHttpClient('RequestMethod', 'RequestUri', ['RequestHeaders'], 'RequestBody');
+        $client = new Client($httpClient);
+
+        static::assertEquals($this->getExpectedApiResponse(), $client->sendRequest($apiMethod));
     }
 
     /**
      * @test
-     * @small
-     * @dataProvider providerSendPracticeInfoRequest
-     *
-     * @param string   $baseUri
-     * @param int|null $limit
-     * @param int|null $offset
-     * @param string   $expectedUri
      */
-    public function shoulSendPracticeInfoRequest($baseUri, $limit, $offset, $expectedUri)
+    public function shouldGetPracticeInfo()
     {
-        $response = new Response();
+        $practiceInfo = new PracticeInfoMethod();
 
-        $httpClientMock = $this->getHttpClientMock(['get']);
-        $httpClientMock->expects(static::once())
-            ->method('get')
-            ->with($expectedUri, [])
-            ->willReturn($response);
-
-        $authenticatorMock = $this->getAuthenticatorMock($httpClientMock);
-
-        $apiClient = new Client($httpClientMock, $authenticatorMock);
-        $apiClient->setBaseUri($baseUri);
-
-        static::assertSame($response, $apiClient->practiceInfo($limit, $offset));
-    }
-
-    /**
-     * @see shoulSendPracticeInfoRequest
-     *
-     * @return array
-     */
-    public function providerSendPracticeInfoRequest()
-    {
-        return [
-            ['http://localhost', null, null, 'http://localhost/1/practiceinfo'],
-            ['http://localhost', 1, null, 'http://localhost/1/practiceinfo?limit=1'],
-            ['http://localhost/', null, 2, 'http://localhost/1/practiceinfo?offset=2'],
-            ['http://localhost/', 1, 2, 'http://localhost/1/practiceinfo?limit=1&offset=2'],
-        ];
+        $this->assertPracticeInfo($practiceInfo, null, null);
     }
 
     /**
      * @test
-     * @small
-     *
-     * @expectedException \BadMethodCallException
-     * @expectedExceptionMessage Undefined API instance called: "abc".
-     * @expectedExceptionCode 0
      */
-    public function shouldThrowUndefinedAPIException()
+    public function shouldGetPracticeInfoWithLimit()
     {
-        $httpClientMock = $this->getHttpClientMock();
-        $apiClient = new Client($httpClientMock, new VoidAuthenticator());
+        $practiceInfo = new PracticeInfoMethod();
+        $practiceInfo->setLimit($this->requestLimit);
 
-        /** @noinspection PhpUndefinedMethodInspection */
-        $apiClient->abc();
+        $this->assertPracticeInfo($practiceInfo, $this->requestLimit, null);
     }
 
     /**
      * @test
-     * @small
-     *
-     * @expectedException \BadMethodCallException
-     * @expectedExceptionMessage Practice ID is empty.
-     * @expectedExceptionCode 0
      */
-    public function shouldThrowEmptyPracticeIdException()
+    public function shouldGetPracticeInfoWithOffset()
     {
-        $httpClientMock = $this->getHttpClientMock();
-        $apiClient = new Client($httpClientMock, new VoidAuthenticator());
+        $practiceInfo = new PracticeInfoMethod();
+        $practiceInfo->setOffset($this->requestOffset);
 
-        $apiClient->practice();
+        $this->assertPracticeInfo($practiceInfo, null, $this->requestOffset);
     }
 
     /**
      * @test
-     * @small
      */
-    public function shouldReturnPracticeApi()
+    public function shouldGetPracticeInfoWithLimitAndOffset()
     {
-        $httpClientMock = $this->getHttpClientMock();
-        $apiClient = new Client($httpClientMock, new VoidAuthenticator());
+        $practiceInfo = new PracticeInfoMethod();
+        $practiceInfo->setLimit($this->requestLimit)->setOffset($this->requestOffset);
 
-        static::assertInstanceOf(Practice::class, $apiClient->setPracticeId(1)->practice());
+        $this->assertPracticeInfo($practiceInfo, $this->requestLimit, $this->requestOffset);
     }
 
     /**
-     * @test
-     * @small
+     * @param PracticeInfoMethod $practiceInfo
+     * @param int|null           $limit
+     * @param int|null           $offset
      */
-    public function shouldReturnPatientsApi()
+    protected function assertPracticeInfo(PracticeInfoMethod $practiceInfo, $limit, $offset)
     {
-        $httpClientMock = $this->getHttpClientMock();
-        $apiClient = new Client($httpClientMock, new VoidAuthenticator());
-
-        static::assertInstanceOf(Patients::class, $apiClient->setPracticeId(1)->patients());
-    }
-
-    /**
-     * @test
-     * @small
-     */
-    public function shouldReturnAppointmentsApi()
-    {
-        $httpClientMock = $this->getHttpClientMock();
-        $apiClient = new Client($httpClientMock, new VoidAuthenticator());
-
-        static::assertInstanceOf(Appointments::class, $apiClient->setPracticeId(1)->appointments());
-    }
-
-    /**
-     * @param HttpClient $httpClient
-     *
-     * @return \PHPUnit_Framework_MockObject_MockObject|AuthenticatorInterface
-     */
-    protected function getAuthenticatorMock(HttpClient $httpClient)
-    {
-        $authenticatorMock = $this->getMockForAbstractClass(AuthenticatorInterface::class);
-        $authenticatorMock->expects(static::once())
-            ->method('authenticate')
-            ->with($httpClient)
-            ->willReturn($httpClient);
-
-        return $authenticatorMock;
-    }
-
-    /**
-     * @param array $methods
-     *
-     * @return \PHPUnit_Framework_MockObject_MockObject|HttpClient
-     */
-    protected function getHttpClientMock(array $methods = [])
-    {
-        return $this->getMockBuilder(HttpClient::class)
+        /** @var \PHPUnit_Framework_MockObject_MockObject|Client $client */
+        $client = $this->getMockBuilder(Client::class)
             ->disableOriginalConstructor()
-            ->setMethods($methods)
+            ->setMethods(['sendRequest'])
             ->getMock();
+
+        $client->expects(static::once())
+            ->method('sendRequest')
+            ->with($practiceInfo)
+            ->willReturn([]);
+
+        static::assertEquals([], $client->practiceInfo($limit, $offset));
     }
 }

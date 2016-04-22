@@ -7,16 +7,16 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-namespace TonicForHealth\AthenaHealth\API;
+namespace TonicForHealth\AthenaHealth\ApiEndpoint;
 
 use TonicForHealth\AthenaHealth\Client;
 
 /**
- * Class AbstractApi
+ * Class AbstractApiEndpoint
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-abstract class AbstractApi implements ApiInterface
+abstract class AbstractApiEndpoint implements ApiEndpointInterface
 {
     /**
      * @var Client
@@ -31,9 +31,28 @@ abstract class AbstractApi implements ApiInterface
     /**
      * {@inheritdoc}
      */
-    public function __construct(Client $client, $practiceId)
+    public function __construct(Client $client)
     {
         $this->client = $client;
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @return $this
+     */
+    public function setPracticeId($practiceId)
+    {
         $this->practiceId = (int) $practiceId;
+
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getPracticeId()
+    {
+        return $this->practiceId;
     }
 }

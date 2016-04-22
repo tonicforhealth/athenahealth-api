@@ -7,22 +7,29 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-namespace TonicForHealth\AthenaHealth\Authenticator;
-
-use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
+namespace TonicForHealth\AthenaHealth\ApiMethod;
 
 /**
- * Class VoidAuthenticator
+ * Class AbstractApiMethod
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-class VoidAuthenticator implements AuthenticatorInterface
+abstract class AbstractApiMethod implements ApiMethodInterface
 {
     /**
-     * {@inheritdoc}
+     * @var int
      */
-    public function authenticate(HttpClient $httpClient)
+    protected $practiceId;
+
+    /**
+     * {@inheritdoc}
+     *
+     * @return $this
+     */
+    public function setPracticeId($practiceId)
     {
-        return $httpClient;
+        $this->practiceId = (int) $practiceId;
+
+        return $this;
     }
 }

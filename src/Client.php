@@ -10,21 +10,18 @@
 namespace TonicForHealth\AthenaHealth;
 
 use Http\Client\Exception;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\StreamInterface;
-use Psr\Http\Message\UriInterface;
-use TonicForHealth\AthenaHealth\API\ApiInterface;
-use TonicForHealth\AthenaHealth\Authenticator\AuthenticatorInterface;
+use Http\Client\Plugin\Exception\ClientErrorException;
+use Http\Client\Plugin\Exception\ServerErrorException;
+use TonicForHealth\AthenaHealth\Api\PracticeInterface;
+use TonicForHealth\AthenaHealth\ApiEndpoint\PracticeEndpoint;
+use TonicForHealth\AthenaHealth\ApiMethod\ApiMethodInterface;
+use TonicForHealth\AthenaHealth\ApiMethod\Practice\PracticeInfoMethod;
 use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
 
 /**
  * Class Client
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
- *
- * @method API\Appointments appointments()
- * @method API\Patients patients()
- * @method API\Practice practice()
  */
 class Client
 {
@@ -34,128 +31,77 @@ class Client
     protected $httpClient;
 
     /**
-     * @var AuthenticatorInterface
-     */
-    protected $authenticator;
-
-    /**
-     * @var string
-     */
-    protected $baseUri;
-
-    /**
-     * @var int
-     */
-    protected $practiceId;
-
-    /**
      * Client constructor.
      *
-     * @param HttpClient             $httpClient
-     * @param AuthenticatorInterface $authenticator
+     * @param HttpClient $httpClient
      */
-    public function __construct(HttpClient $httpClient, AuthenticatorInterface $authenticator)
+    public function __construct(HttpClient $httpClient)
     {
         $this->httpClient = $httpClient;
-        $this->authenticator = $authenticator;
     }
 
     /**
-     * @param string|UriInterface $baseUri
+     * Returns a practice endpoint.
      *
-     * @return $this
-     */
-    public function setBaseUri($baseUri)
-    {
-        $this->baseUri = rtrim($baseUri, '/');
-
-        return $this;
-    }
-
-    /**
      * @param int $practiceId
      *
-     * @return $this
+     * @return PracticeInterface
      */
-    public function setPracticeId($practiceId)
+    public function practice($practiceId)
     {
-        $this->practiceId = (int) $practiceId;
+        $practice = new PracticeEndpoint($this);
+        $practice->setPracticeId($practiceId);
 
-        return $this;
+        return $practice;
     }
 
     /**
-     * Sends an authenticated GET request.
-     *
-     * @param string|UriInterface $uri
-     * @param array               $headers
-     *
-     * @return ResponseInterface
-     *
-     * @throws Exception
-     */
-    public function get($uri, array $headers = [])
-    {
-        $uri = sprintf('%s%s', $this->baseUri, $uri);
-
-        return $this->authenticator->authenticate($this->httpClient)->get($uri, $headers);
-    }
-
-    /**
-     * Sends an authenticated POST request.
-     *
-     * @param string|UriInterface         $uri
-     * @param array                       $headers
-     * @param string|StreamInterface|null $body
-     *
-     * @throws Exception
-     *
-     * @return ResponseInterface
-     */
-    public function post($uri, array $headers = [], $body = null)
-    {
-        $uri = sprintf('%s%s', $this->baseUri, $uri);
-
-        return $this->authenticator->authenticate($this->httpClient)->post($uri, $headers, $body);
-    }
-
-    /**
-     * List of all practice IDs that an API user has access to.
+     * Returns a list of all practices that an API user has access to.
      *
      * @param int|null $limit  (Optional) Number of entries to return (default 1500, max 5000)
      * @param int|null $offset (Optional) Starting point of entries; 0-indexed
      *
-     * @return ResponseInterface
+     * @return array
      *
-     * @throws Exception
+     * @throws ClientErrorException If response status code is a 4xx
+     * @throws ServerErrorException If response status code is a 5xx
+     * @throws Exception            If an error happens during processing the request
      */
     public function practiceInfo($limit = null, $offset = null)
     {
-        $query = http_build_query(['limit' => $limit, 'offset' => $offset]);
-        $uri = rtrim(sprintf('/1/practiceinfo?%s', $query), '?');
+        $practiceInfo = new PracticeInfoMethod();
 
-        return $this->get($uri);
+        if (null !== $limit) {
+            $practiceInfo->setLimit($limit);
+        }
+
+        if (null !== $offset) {
+            $practiceInfo->setOffset($offset);
+        }
+
+        return $this->sendRequest($practiceInfo);
     }
 
     /**
-     * {@inheritdoc}
+     * Sends a predefined API request.
      *
-     * @return ApiInterface
+     * @param ApiMethodInterface $apiMethod
      *
-     * @throws \BadMethodCallException
+     * @return array
+     *
+     * @throws ClientErrorException If response status code is a 4xx
+     * @throws ServerErrorException If response status code is a 5xx
+     * @throws Exception            If an error happens during processing the request
      */
-    public function __call($name, $arguments)
+    public function sendRequest(ApiMethodInterface $apiMethod)
     {
-        $className = sprintf('%s\\API\\%s', __NAMESPACE__, ucfirst($name));
+        $response = $this->httpClient->send(
+            $apiMethod->getRequestMethod(),
+            $apiMethod->getRequestUri(),
+            $apiMethod->getRequestHeaders(),
+            $apiMethod->getRequestBody()
+        );
 
-        if (!class_exists($className) || !is_subclass_of($className, ApiInterface::class)) {
-            throw new \BadMethodCallException(sprintf('Undefined API instance called: "%s".', $name));
-        }
-
-        if (null === $this->practiceId) {
-            throw new \BadMethodCallException('Practice ID is empty.');
-        }
-
-        return new $className($this, $this->practiceId);
+        return json_decode($response->getBody(), true);
     }
 }

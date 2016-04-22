@@ -7,22 +7,23 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-namespace TonicForHealth\AthenaHealth\API;
+namespace TonicForHealth\AthenaHealth\Tests\Authenticator\DataFixtures;
 
-use TonicForHealth\AthenaHealth\Client;
+use Http\Message\Authentication;
+use Psr\Http\Message\RequestInterface;
 
 /**
- * Interface ApiInterface
+ * Class VoidAuthentication
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-interface ApiInterface
+class VoidAuthentication implements Authentication
 {
     /**
-     * ApiInterface constructor.
-     *
-     * @param Client $client
-     * @param int    $practiceId
+     * {@inheritdoc}
      */
-    public function __construct(Client $client, $practiceId);
+    public function authenticate(RequestInterface $request)
+    {
+        return $request;
+    }
 }

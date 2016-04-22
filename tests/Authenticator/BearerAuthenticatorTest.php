@@ -13,11 +13,16 @@ use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Response;
 use Http\Adapter\Guzzle6\Client as GuzzleAdapter;
+use Http\Discovery\MessageFactoryDiscovery;
+use Http\Message\Authentication\Bearer;
+use Http\Message\MessageFactory;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
+use TonicForHealth\AthenaHealth\Authenticator\AuthenticatorInterface;
 use TonicForHealth\AthenaHealth\Authenticator\BearerAuthenticator;
 use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
+use TonicForHealth\AthenaHealth\Tests\Authenticator\DataFixtures\VoidAuthentication;
 
 /**
  * Class BearerAuthenticatorTest
@@ -26,123 +31,123 @@ use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
  */
 class BearerAuthenticatorTest extends \PHPUnit_Framework_TestCase
 {
-    const OAUTH_PREVIEW_URI = '/oauthpreview/token';
-
     /**
-     * @var string
+     * @var MessageFactory
      */
-    protected $clientId;
-
-    /**
-     * @var string
-     */
-    protected $clientSecret;
-
-    /**
-     * @var BearerAuthenticator
-     */
-    protected $authenticator;
-
-    /**
-     * @test
-     * @small
-     */
-    public function shouldAuthenticate()
-    {
-        $accessToken = md5(uniqid('accessToken#', false));
-
-        $responses = [
-            new Response(200, [], sprintf('{"access_token":"%s","expires_in":3600}', $accessToken)),
-            new Response(),
-        ];
-
-        $history = [];
-
-        $httpClient = $this->createHttpClient($responses, $history);
-        $this->authenticator->authenticate($httpClient)->get('/');
-
-        static::assertCount(2, $history);
-
-        $this->assertAuthRequest($history[0]['request']);
-        $this->assertDataReques($history[1]['request'], $accessToken);
-    }
-
-    /**
-     * @test
-     * @small
-     */
-    public function shouldReuseToken()
-    {
-        $accessToken = md5(uniqid('accessToken#', false));
-
-        $responses = [
-            new Response(200, [], sprintf('{"access_token":"%s","expires_in":3600}', $accessToken)),
-            new Response(),
-            new Response(),
-        ];
-
-        $history = [];
-
-        $httpClient = $this->createHttpClient($responses, $history);
-        $this->authenticator->authenticate($httpClient)->get('/');
-        $this->authenticator->authenticate($httpClient)->get('/');
-
-        static::assertCount(3, $history);
-
-        $this->assertAuthRequest($history[0]['request']);
-        $this->assertDataReques($history[1]['request'], $accessToken);
-        $this->assertDataReques($history[2]['request'], $accessToken);
-    }
-
-    /**
-     * @test
-     * @small
-     */
-    public function shouldRefreshToken()
-    {
-        $accessToken1 = md5(uniqid('accessToken#', false));
-        $accessToken2 = md5(uniqid('accessToken#', false));
-
-        $responses = [
-            new Response(200, [], sprintf('{"access_token":"%s","expires_in":0}', $accessToken1)),
-            new Response(),
-            new Response(200, [], sprintf('{"access_token":"%s","expires_in":3600}', $accessToken2)),
-            new Response(),
-        ];
-
-        $history = [];
-
-        $httpClient = $this->createHttpClient($responses, $history);
-        $this->authenticator->authenticate($httpClient)->get('/');
-        $this->authenticator->authenticate($httpClient)->get('/');
-
-        static::assertCount(4, $history);
-
-        $this->assertAuthRequest($history[0]['request']);
-        $this->assertDataReques($history[1]['request'], $accessToken1);
-        $this->assertAuthRequest($history[2]['request']);
-        $this->assertDataReques($history[3]['request'], $accessToken2);
-    }
+    protected static $messageFactory;
 
     /**
      * {@inheritdoc}
      */
-    protected function setUp()
+    public static function setUpBeforeClass()
     {
-        parent::setUp();
+        parent::setUpBeforeClass();
 
-        $this->clientId = uniqid('clientId#', false);
-        $this->clientSecret = uniqid('clientSecret#', false);
-
-        $this->authenticator = new BearerAuthenticator();
-        $this->authenticator->setClientId($this->clientId)
-            ->setClientSecret($this->clientSecret)
-            ->setAuthUri(static::OAUTH_PREVIEW_URI);
+        static::$messageFactory = MessageFactoryDiscovery::find();
     }
 
     /**
-     * @param Response[] $responses
-     * @param array      $container
+     * @test
+     */
+    public function shouldAuthenticate()
+    {
+        $accessToken = md5(uniqid('accessToken#', false));
+        $responseBody = sprintf('{"access_token":"%s","expires_in":3600}', $accessToken);
+
+        $responses = [
+            static::$messageFactory->createResponse(200, null, [], $responseBody),
+        ];
+
+        $history = [];
+        $request = static::$messageFactory->createRequest('GET', '/');
+
+        $httpClient = $this->createHttpClient($responses, $history);
+        $httpClient->setAuthenticator($this->getAuthenticator());
+
+        $authenticator = new BearerAuthenticator($httpClient);
+        $authentication = $authenticator->getAuthentication();
+
+        static::assertInstanceOf(Bearer::class, $authentication);
+
+        $headerLine = $authentication->authenticate($request)->getHeaderLine('Authorization');
+        static::assertEquals(sprintf('Bearer %s', $accessToken), $headerLine);
+
+        static::assertCount(1, $history);
+        static::assertNull($history[0]['error']);
+
+        /** @var RequestInterface $internalRequest */
+        $internalRequest = $history[0]['request'];
+
+        static::assertEquals('POST', $internalRequest->getMethod());
+        static::assertEquals('/token', (string) $internalRequest->getUri());
+        static::assertEquals('application/x-www-form-urlencoded', $internalRequest->getHeaderLine('Content-Type'));
+        static::assertEquals('grant_type=client_credentials', (string) $internalRequest->getBody());
+    }
+
+    /**
+     * @test
+     */
+    public function shouldReuseToken()
+    {
+        $accessToken = md5(uniqid('accessToken#', false));
+        $responseBody = sprintf('{"access_token":"%s","expires_in":3600}', $accessToken);
+
+        $responses = [
+            static::$messageFactory->createResponse(200, null, [], $responseBody),
+        ];
+
+        $history = [];
+        $request = static::$messageFactory->createRequest('GET', '/');
+
+        $httpClient = $this->createHttpClient($responses, $history);
+        $httpClient->setAuthenticator($this->getAuthenticator());
+
+        $authenticator = new BearerAuthenticator($httpClient);
+
+        for ($i = 0; $i < 2; $i++) {
+            $authentication = $authenticator->getAuthentication();
+
+            $headerLine = $authentication->authenticate($request)->getHeaderLine('Authorization');
+            static::assertEquals(sprintf('Bearer %s', $accessToken), $headerLine);
+        }
+
+        static::assertCount(1, $history);
+    }
+
+    /**
+     * @test
+     */
+    public function shouldRefreshToken()
+    {
+        $accessToken = md5(uniqid('accessToken#', false));
+        $responseBody = sprintf('{"access_token":"%s","expires_in":0}', $accessToken);
+
+        $responses = [
+            static::$messageFactory->createResponse(200, null, [], $responseBody),
+            static::$messageFactory->createResponse(200, null, [], $responseBody),
+        ];
+
+        $history = [];
+        $request = static::$messageFactory->createRequest('GET', '/');
+
+        $httpClient = $this->createHttpClient($responses, $history);
+        $httpClient->setAuthenticator($this->getAuthenticator(2));
+
+        $authenticator = new BearerAuthenticator($httpClient);
+
+        for ($i = 0; $i < 2; $i++) {
+            $authentication = $authenticator->getAuthentication();
+
+            $headerLine = $authentication->authenticate($request)->getHeaderLine('Authorization');
+            static::assertEquals(sprintf('Bearer %s', $accessToken), $headerLine);
+        }
+
+        static::assertCount(2, $history);
+    }
+
+    /**
+     * @param ResponseInterface[] $responses
+     * @param array               $container
      *
      * @return HttpClient
      */
@@ -156,31 +161,21 @@ class BearerAuthenticatorTest extends \PHPUnit_Framework_TestCase
         $guzzleHttpClient = new GuzzleClient(['handler' => $handlerStack]);
         $guzzleHttpAdapter = new GuzzleAdapter($guzzleHttpClient);
 
-        return new HttpClient($guzzleHttpAdapter);
+        return new HttpClient($guzzleHttpAdapter, static::$messageFactory);
     }
 
     /**
-     * @param Request $request
+     * @param int $count
+     *
+     * @return \PHPUnit_Framework_MockObject_MockObject|AuthenticatorInterface
      */
-    protected function assertAuthRequest(Request $request)
+    protected function getAuthenticator($count = 1)
     {
-        $basicAuthHeader = sprintf('Basic %s', base64_encode(sprintf('%s:%s', $this->clientId, $this->clientSecret)));
+        $authenticator = $this->getMockForAbstractClass(AuthenticatorInterface::class);
+        $authenticator->expects(static::exactly($count))
+            ->method('getAuthentication')
+            ->willReturn(new VoidAuthentication());
 
-        static::assertEquals('POST', $request->getMethod());
-        static::assertEquals(static::OAUTH_PREVIEW_URI, (string) $request->getUri());
-        static::assertEquals('grant_type=client_credentials', (string) $request->getBody());
-        static::assertEquals('application/x-www-form-urlencoded', $request->getHeaderLine('Content-Type'));
-        static::assertEquals($basicAuthHeader, $request->getHeaderLine('Authorization'));
-    }
-
-    /**
-     * @param Request $request
-     * @param string  $accessToken
-     */
-    protected function assertDataReques(Request $request, $accessToken)
-    {
-        $bearerAuthHeader = sprintf('Bearer %s', $accessToken);
-
-        static::assertEquals($bearerAuthHeader, $request->getHeaderLine('Authorization'));
+        return $authenticator;
     }
 }
