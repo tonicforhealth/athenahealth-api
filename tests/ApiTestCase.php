@@ -9,6 +9,9 @@
  */
 namespace TonicForHealth\AthenaHealth\Tests;
 
+use Http\Discovery\MessageFactoryDiscovery;
+use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
+
 /**
  * Class ApiTestCase
  *
@@ -54,5 +57,61 @@ class ApiTestCase extends \PHPUnit_Framework_TestCase
         $this->appointmentId = mt_rand(650000, 659999);
         $this->requestLimit = mt_rand(1, 9);
         $this->requestOffset = mt_rand(10, 99);
+    }
+
+    /**
+     * @param string $method
+     * @param string $uri
+     * @param array  $headers
+     * @param string $body
+     *
+     * @return \PHPUnit_Framework_MockObject_MockObject|HttpClient
+     */
+    protected function getHttpClient($method, $uri, array $headers = [], $body = null)
+    {
+        $httpClient = $this->getHttpClientMock(['send']);
+        $httpClient->expects(static::once())
+            ->method('send')
+            ->with($method, $uri, $headers, $body)
+            ->willReturn($this->getHttpResponse());
+
+        return $httpClient;
+    }
+
+    /**
+     * @param array $methods
+     *
+     * @return \PHPUnit_Framework_MockObject_MockObject|HttpClient
+     */
+    protected function getHttpClientMock(array $methods)
+    {
+        return $this->getMockBuilder(HttpClient::class)
+            ->disableOriginalConstructor()
+            ->setMethods($methods)
+            ->getMock();
+    }
+
+    /**
+     * @return \Psr\Http\Message\ResponseInterface
+     */
+    protected function getHttpResponse()
+    {
+        return MessageFactoryDiscovery::find()->createResponse(200, null, [], $this->getHttpResponseBody());
+    }
+
+    /**
+     * @return string
+     */
+    protected function getHttpResponseBody()
+    {
+        return '{}';
+    }
+
+    /**
+     * @return array
+     */
+    protected function getExpectedApiResponse()
+    {
+        return [];
     }
 }

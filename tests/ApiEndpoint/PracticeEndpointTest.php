@@ -16,13 +16,14 @@ use TonicForHealth\AthenaHealth\ApiEndpoint\PatientEndpoint;
 use TonicForHealth\AthenaHealth\ApiEndpoint\PracticeEndpoint;
 use TonicForHealth\AthenaHealth\Client;
 use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
+use TonicForHealth\AthenaHealth\Tests\ApiTestCase;
 
 /**
  * Class PracticeEndpointTest
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-class PracticeEndpointTest extends ApiEndpointTestCase
+class PracticeEndpointTest extends ApiTestCase
 {
     /**
      * @test

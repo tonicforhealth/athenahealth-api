@@ -12,13 +12,14 @@ namespace TonicForHealth\AthenaHealth\Tests\ApiEndpoint;
 use TonicForHealth\AthenaHealth\ApiEndpoint\AppointmentsEndpoint;
 use TonicForHealth\AthenaHealth\Client;
 use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
+use TonicForHealth\AthenaHealth\Tests\ApiTestCase;
 
 /**
  * Class AppointmentsEndpointTest
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-class AppointmentsEndpointTest extends ApiEndpointTestCase
+class AppointmentsEndpointTest extends ApiTestCase
 {
     /**
      * @test
