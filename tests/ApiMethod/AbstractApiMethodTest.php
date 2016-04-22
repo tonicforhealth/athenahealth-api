@@ -11,18 +11,15 @@ namespace TonicForHealth\AthenaHealth\Tests\ApiMethod;
 
 use TonicForHealth\AthenaHealth\ApiMethod\ApiMethodInterface;
 use TonicForHealth\AthenaHealth\ApiMethod\CollectionMethodInterface;
+use TonicForHealth\AthenaHealth\Tests\ApiTestCase;
 
 /**
  * Class AbstractApiMethodTest
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-abstract class AbstractApiMethodTest extends \PHPUnit_Framework_TestCase
+abstract class AbstractApiMethodTest extends ApiTestCase
 {
-    const FIXTURES_PRACTICE_ID = 195900;
-    const FIXTURES_PATIENT_ID = 1234;
-    const FIXTURES_APPOINTMENT_ID = 654321;
-
     /**
      * @var ApiMethodInterface
      */
@@ -50,7 +47,7 @@ abstract class AbstractApiMethodTest extends \PHPUnit_Framework_TestCase
         parent::setUp();
 
         $this->apiMethod = $this->getApiMethod();
-        $this->apiMethod->setPracticeId(static::FIXTURES_PRACTICE_ID);
+        $this->apiMethod->setPracticeId($this->practiceId);
     }
 
     /**
@@ -68,10 +65,8 @@ abstract class AbstractApiMethodTest extends \PHPUnit_Framework_TestCase
      */
     protected function assertWithLimit(CollectionMethodInterface $apiMethod)
     {
-        $limit = mt_rand(1, 100);
-
-        $requestUri = $apiMethod->setLimit($limit)->getRequestUri();
-        $expectedRequestUri = sprintf('%s?limit=%d', $this->getExpectedRequestUri(), $limit);
+        $requestUri = $apiMethod->setLimit($this->requestLimit)->getRequestUri();
+        $expectedRequestUri = sprintf('%s?limit=%d', $this->getExpectedRequestUri(), $this->requestLimit);
 
         static::assertEquals($expectedRequestUri, $requestUri);
     }
@@ -81,10 +76,8 @@ abstract class AbstractApiMethodTest extends \PHPUnit_Framework_TestCase
      */
     protected function assertWithOffset(CollectionMethodInterface $apiMethod)
     {
-        $offset = mt_rand(1, 100);
-
-        $requestUri = $apiMethod->setOffset($offset)->getRequestUri();
-        $expectedRequestUri = sprintf('%s?offset=%d', $this->getExpectedRequestUri(), $offset);
+        $requestUri = $apiMethod->setOffset($this->requestOffset)->getRequestUri();
+        $expectedRequestUri = sprintf('%s?offset=%d', $this->getExpectedRequestUri(), $this->requestOffset);
 
         static::assertEquals($expectedRequestUri, $requestUri);
     }
@@ -94,11 +87,16 @@ abstract class AbstractApiMethodTest extends \PHPUnit_Framework_TestCase
      */
     protected function assertWithLimitAndOffset(CollectionMethodInterface $apiMethod)
     {
-        $limit = mt_rand(1, 10);
-        $offset = mt_rand(11, 100);
+        $requestUri = $apiMethod->setLimit($this->requestLimit)
+            ->setOffset($this->requestOffset)
+            ->getRequestUri();
 
-        $requestUri = $apiMethod->setLimit($limit)->setOffset($offset)->getRequestUri();
-        $expectedRequestUri = sprintf('%s?limit=%d&offset=%d', $this->getExpectedRequestUri(), $limit, $offset);
+        $expectedRequestUri = sprintf(
+            '%s?limit=%d&offset=%d',
+            $this->getExpectedRequestUri(),
+            $this->requestLimit,
+            $this->requestOffset
+        );
 
         static::assertEquals($expectedRequestUri, $requestUri);
     }

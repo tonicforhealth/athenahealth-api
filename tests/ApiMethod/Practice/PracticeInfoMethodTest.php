@@ -42,6 +42,6 @@ class PracticeInfoMethodTest extends AbstractHttpGetMethodTest
      */
     protected function getExpectedRequestUri()
     {
-        return '/195900/practiceinfo';
+        return sprintf('/%d/practiceinfo', $this->practiceId);
     }
 }

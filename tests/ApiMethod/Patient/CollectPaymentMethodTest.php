@@ -30,7 +30,7 @@ class CollectPaymentMethodTest extends AbstractHttpPostMethodTest
         ];
 
         $collectPayment = new CollectPaymentMethod();
-        $collectPayment->setPatientId(static::FIXTURES_PATIENT_ID)->setRequestFields($requestFields);
+        $collectPayment->setPatientId($this->patientId)->setRequestFields($requestFields);
 
         return $collectPayment;
     }
@@ -40,7 +40,7 @@ class CollectPaymentMethodTest extends AbstractHttpPostMethodTest
      */
     protected function getExpectedRequestUri()
     {
-        return '/195900/patients/1234/collectpayment';
+        return sprintf('/%d/patients/%d/collectpayment', $this->practiceId, $this->patientId);
     }
 
     /**

@@ -20,17 +20,12 @@ use TonicForHealth\AthenaHealth\Tests\ApiMethod\AbstractHttpGetMethodTest;
 class AppointmentMethodTest extends AbstractHttpGetMethodTest
 {
     /**
-     * @var int
-     */
-    protected $appointmentId;
-
-    /**
      * {@inheritdoc}
      */
     protected function getApiMethod()
     {
         $appointment = new AppointmentMethod();
-        $appointment->setAppointmentId(static::FIXTURES_APPOINTMENT_ID);
+        $appointment->setAppointmentId($this->appointmentId);
 
         return $appointment;
     }
@@ -40,6 +35,6 @@ class AppointmentMethodTest extends AbstractHttpGetMethodTest
      */
     protected function getExpectedRequestUri()
     {
-        return '/195900/appointments/654321';
+        return sprintf('/%d/appointments/%d', $this->practiceId, $this->appointmentId);
     }
 }

@@ -32,6 +32,6 @@ class PingMethodTest extends AbstractHttpGetMethodTest
      */
     protected function getExpectedRequestUri()
     {
-        return '/195900/ping';
+        return sprintf('/%d/ping', $this->practiceId);
     }
 }

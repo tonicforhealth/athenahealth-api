@@ -32,6 +32,6 @@ class DepartmentsMethodTest extends AbstractHttpGetMethodTest
      */
     protected function getExpectedRequestUri()
     {
-        return '/195900/departments';
+        return sprintf('/%d/departments', $this->practiceId);
     }
 }
