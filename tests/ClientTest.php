@@ -112,8 +112,8 @@ class ClientTest extends ApiTestCase
 
     /**
      * @param PracticeInfoMethod $practiceInfo
-     * @param int|null     $limit
-     * @param int|null     $offset
+     * @param int|null           $limit
+     * @param int|null           $offset
      */
     protected function assertPracticeInfo(PracticeInfoMethod $practiceInfo, $limit, $offset)
     {

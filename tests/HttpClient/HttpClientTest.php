@@ -71,7 +71,7 @@ class HttpClientTest extends \PHPUnit_Framework_TestCase
         $request = $this->container[0]['request'];
 
         static::assertEquals(strtoupper($method), $request->getMethod());
-        static::assertEquals($expectedUri, (string)$request->getUri());
+        static::assertEquals($expectedUri, (string) $request->getUri());
         static::assertEquals($headerValue, $request->getHeaderLine($headerName));
         static::assertEquals($body, $request->getBody());
     }

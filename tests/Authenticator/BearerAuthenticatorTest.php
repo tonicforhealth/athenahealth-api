@@ -147,7 +147,7 @@ class BearerAuthenticatorTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @param ResponseInterface[] $responses
-     * @param array      $container
+     * @param array               $container
      *
      * @return HttpClient
      */
