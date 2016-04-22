@@ -12,14 +12,14 @@ namespace TonicForHealth\AthenaHealth\Tests\HttpClient;
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use Http\Adapter\Guzzle6\Client as GuzzleAdapter;
-use Http\Message\Authentication;
 use Http\Message\MessageFactory\GuzzleMessageFactory;
-use Http\Client\HttpClient as HttpClientInterface;
-use Http\Message\MessageFactory as MessageFactoryInterface;
+use TonicForHealth\AthenaHealth\Authenticator\AuthenticatorInterface;
 use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
+use TonicForHealth\AthenaHealth\Tests\Authenticator\DataFixtures\VoidAuthentication;
 
 /**
  * Class HttpClientTest
@@ -29,89 +29,65 @@ use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
 class HttpClientTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @test
-     * @small
+     * @var array
      */
-    public function shouldConstructSameObjects()
+    protected $container;
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function setUp()
     {
-        $clientWithDiscovery = new HttpClient();
+        parent::setUp();
 
-        $guzzleHttpAdapter = new GuzzleAdapter();
-        $guzzleMessageFactory = new GuzzleMessageFactory();
-
-        $clientWithoutDiscovery = new HttpClient($guzzleHttpAdapter, $guzzleMessageFactory);
-
-        static::assertEquals($clientWithDiscovery, $clientWithoutDiscovery);
+        $this->container = [];
     }
 
     /**
      * @test
-     * @small
+     * @dataProvider providerSend
+     *
+     * @param string $baseUri
+     * @param string $uri
+     * @param string $expectedUri
      */
-    public function shouldUseConstructorParams()
+    public function shouldSend($baseUri, $uri, $expectedUri)
     {
-        $method = 'POST';
-        $uri = 'http://localhost/';
-        $headers = ['X-Some-Header' => microtime(true)];
-        $body = http_build_query(['param' => 'value']);
+        $method = uniqid('method#', false);
+        $headerName = uniqid('headerName#', false);
+        $headerValue = uniqid('headerValue#', false);
+        $body = uniqid('body#', false);
 
-        $request = new Request($method, $uri, $headers, $body);
-        $response = new Response();
-
-        /** @var \PHPUnit_Framework_MockObject_MockObject|HttpClientInterface $httpClientMock */
-        $httpClientMock = $this->getMockForAbstractClass(HttpClientInterface::class);
-        $httpClientMock->expects(static::once())
-            ->method('sendRequest')
-            ->with($request)
-            ->willReturn($response);
-
-        /** @var \PHPUnit_Framework_MockObject_MockObject|MessageFactoryInterface $messageFactoryMock */
-        $messageFactoryMock = $this->getMockForAbstractClass(MessageFactoryInterface::class, ['createRequest']);
-        $messageFactoryMock->expects(static::once())
-            ->method('createRequest')
-            ->with($method, $uri, $headers, $body)
-            ->willReturn($request);
-
-        $httpClient = new HttpClient($httpClientMock, $messageFactoryMock);
-
-        static::assertSame($response, $httpClient->send($method, $uri, $headers, $body));
-    }
-
-    /**
-     * @test
-     * @small
-     */
-    public function shouldSendRequestWithoutAuthentication()
-    {
-        $request = new Request('GET', '/');
         $response = new Response();
 
         $httpClient = $this->createHttpClient([$response]);
+        $httpClient->setBaseUri($baseUri);
 
-        static::assertSame($response, $httpClient->sendRequest($request));
+        static::assertSame($response, $httpClient->send($method, $uri, [$headerName => $headerValue], $body));
+        static::assertCount(1, $this->container);
+        static::assertNull($this->container[0]['error']);
+
+        /** @var Request $request */
+        $request = $this->container[0]['request'];
+
+        static::assertEquals(strtoupper($method), $request->getMethod());
+        static::assertEquals($expectedUri, (string)$request->getUri());
+        static::assertEquals($headerValue, $request->getHeaderLine($headerName));
+        static::assertEquals($body, $request->getBody());
     }
 
     /**
-     * @test
-     * @small
+     * @see shouldSend
+     *
+     * @return array
      */
-    public function shouldSendRequestWithAuthentication()
+    public function providerSend()
     {
-        $request = new Request('GET', '/');
-        $response = new Response();
-
-        $httpClient = $this->createHttpClient([$response]);
-
-        /** @var \PHPUnit_Framework_MockObject_MockObject|Authentication $authenticationMock */
-        $authenticationMock = $this->getMockForAbstractClass(Authentication::class, ['authenticate']);
-        $authenticationMock->expects(static::once())
-            ->method('authenticate')
-            ->with($request)
-            ->willReturn($request);
-
-        $httpClient->setAuthentication($authenticationMock);
-
-        static::assertSame($response, $httpClient->sendRequest($request));
+        return [
+            ['', '/some-path', '/some-path'],
+            ['http://localhost', '/some-path', 'http://localhost/some-path'],
+            ['http://localhost/', '/some-path', 'http://localhost/some-path'],
+        ];
     }
 
     /**
@@ -121,10 +97,23 @@ class HttpClientTest extends \PHPUnit_Framework_TestCase
      */
     protected function createHttpClient(array $responses)
     {
+        $history = Middleware::history($this->container);
+
         $handlerStack = HandlerStack::create(new MockHandler($responses));
+        $handlerStack->push($history);
+
         $guzzleHttpClient = new GuzzleClient(['handler' => $handlerStack]);
         $guzzleHttpAdapter = new GuzzleAdapter($guzzleHttpClient);
 
-        return new HttpClient($guzzleHttpAdapter);
+        /** @var \PHPUnit_Framework_MockObject_MockObject|AuthenticatorInterface $authenticator */
+        $authenticator = $this->getMockForAbstractClass(AuthenticatorInterface::class);
+        $authenticator->expects(static::once())
+            ->method('getAuthentication')
+            ->willReturn(new VoidAuthentication());
+
+        $httpClient = new HttpClient($guzzleHttpAdapter, new GuzzleMessageFactory());
+        $httpClient->setAuthenticator($authenticator);
+
+        return $httpClient;
     }
 }
