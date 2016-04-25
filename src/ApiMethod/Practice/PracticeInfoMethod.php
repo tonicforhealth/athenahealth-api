@@ -9,30 +9,25 @@
  */
 namespace TonicForHealth\AthenaHealth\ApiMethod\Practice;
 
-use TonicForHealth\AthenaHealth\ApiMethod\AbstractApiMethod;
+use TonicForHealth\AthenaHealth\ApiMethod\AbstractCollectionMethod;
 use TonicForHealth\AthenaHealth\ApiMethod\HttpGetMethodTrait;
-use TonicForHealth\AthenaHealth\ApiMethod\CollectionMethodInterface;
-use TonicForHealth\AthenaHealth\ApiMethod\LimitAndOffsetTrait;
 
 /**
  * Class PracticeInfoMethod
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-class PracticeInfoMethod extends AbstractApiMethod implements CollectionMethodInterface
+class PracticeInfoMethod extends AbstractCollectionMethod
 {
     const SPECIAL_PRACTICE_ID = 1;
 
     use HttpGetMethodTrait;
-    use LimitAndOffsetTrait;
 
     /**
      * {@inheritdoc}
      */
-    public function getRequestUri()
+    public function getCollectionUri()
     {
-        $requestUri = sprintf('/%d/practiceinfo', $this->practiceId ?: self::SPECIAL_PRACTICE_ID);
-
-        return $this->applyLimitAndOffset($requestUri);
+        return sprintf('/%d/practiceinfo', $this->practiceId ?: self::SPECIAL_PRACTICE_ID);
     }
 }
