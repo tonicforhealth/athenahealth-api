@@ -12,10 +12,6 @@ namespace TonicForHealth\AthenaHealth;
 use Http\Client\Exception;
 use Http\Client\Plugin\Exception\ClientErrorException;
 use Http\Client\Plugin\Exception\ServerErrorException;
-use TonicForHealth\AthenaHealth\Api\PracticeInterface;
-use TonicForHealth\AthenaHealth\ApiEndpoint\PracticeEndpoint;
-use TonicForHealth\AthenaHealth\ApiMethod\ApiMethodInterface;
-use TonicForHealth\AthenaHealth\ApiMethod\Practice\PracticeInfoMethod;
 use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
 
 /**
@@ -41,25 +37,10 @@ class Client
     }
 
     /**
-     * Returns a practice endpoint.
+     * Sends a HTTP GET request.
      *
-     * @param int $practiceId
-     *
-     * @return PracticeInterface
-     */
-    public function practice($practiceId)
-    {
-        $practice = new PracticeEndpoint($this);
-        $practice->setPracticeId($practiceId);
-
-        return $practice;
-    }
-
-    /**
-     * Returns a list of all practices that an API user has access to.
-     *
-     * @param int|null $limit  (Optional) Number of entries to return (default 1500, max 5000)
-     * @param int|null $offset (Optional) Starting point of entries; 0-indexed
+     * @param string $endpoint The API endpoint
+     * @param array  $params   (Optional) The API method parameters
      *
      * @return array
      *
@@ -67,25 +48,22 @@ class Client
      * @throws ServerErrorException If response status code is a 5xx
      * @throws Exception            If an error happens during processing the request
      */
-    public function practiceInfo($limit = null, $offset = null)
+    public function get($endpoint, array $params = [])
     {
-        $practiceInfo = new PracticeInfoMethod();
+        $format = (false === strpos($endpoint, '?')) ? '%s?%s' : '%s&%s';
+        $uri = rtrim(sprintf($format, $endpoint, http_build_query($params)), '?&');
 
-        if (null !== $limit) {
-            $practiceInfo->setLimit($limit);
-        }
+        $response = $this->httpClient->get($uri);
 
-        if (null !== $offset) {
-            $practiceInfo->setOffset($offset);
-        }
-
-        return $this->sendRequest($practiceInfo);
+        return json_decode($response->getBody(), true);
     }
 
     /**
-     * Sends a predefined API request.
+     * Sends a HTTP POST request.
      *
-     * @param ApiMethodInterface $apiMethod
+     * @param string $endpoint The API endpoint with replacements
+     * @param array  $params   The API method parameters
+     * @param array  $headers  (Optional) Additional HTTP headers
      *
      * @return array
      *
@@ -93,13 +71,16 @@ class Client
      * @throws ServerErrorException If response status code is a 5xx
      * @throws Exception            If an error happens during processing the request
      */
-    public function sendRequest(ApiMethodInterface $apiMethod)
+    public function post($endpoint, array $params, array $headers = [])
     {
-        $response = $this->httpClient->send(
-            $apiMethod->getRequestMethod(),
-            $apiMethod->getRequestUri(),
-            $apiMethod->getRequestHeaders(),
-            $apiMethod->getRequestBody()
+        $baseHeaders = [
+            'Content-Type' => 'application/x-www-form-urlencoded',
+        ];
+
+        $response = $this->httpClient->post(
+            $endpoint,
+            array_merge($baseHeaders, $headers),
+            http_build_query($params)
         );
 
         return json_decode($response->getBody(), true);
