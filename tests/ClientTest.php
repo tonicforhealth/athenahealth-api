@@ -9,125 +9,181 @@
  */
 namespace TonicForHealth\AthenaHealth\Tests;
 
-use TonicForHealth\AthenaHealth\Api\PracticeInterface;
-use TonicForHealth\AthenaHealth\ApiEndpoint\PracticeEndpoint;
-use TonicForHealth\AthenaHealth\ApiMethod\ApiMethodInterface;
-use TonicForHealth\AthenaHealth\ApiMethod\Practice\PracticeInfoMethod;
+use Http\Discovery\MessageFactoryDiscovery;
+use Http\Message\MessageFactory;
 use TonicForHealth\AthenaHealth\Client;
+use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
 
 /**
  * Class ClientTest
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-class ClientTest extends ApiTestCase
+class ClientTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @test
+     * @var MessageFactory
      */
-    public function shouldGetPractice()
+    protected static $messageFactory;
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function setUpBeforeClass()
     {
-        $client = new Client($this->getHttpClientMock([]));
+        parent::setUpBeforeClass();
 
-        /** @var PracticeInterface|PracticeEndpoint $practice */
-        $practice = $client->practice($this->practiceId);
-
-        static::assertInstanceOf(PracticeInterface::class, $practice);
-        static::assertInstanceOf(PracticeEndpoint::class, $practice);
-        static::assertEquals($this->practiceId, $practice->getPracticeId());
+        static::$messageFactory = MessageFactoryDiscovery::find();
     }
 
     /**
      * @test
+     * @dataProvider providerSendGetRequest
+     *
+     * @param string $endpoint
+     * @param array  $params
+     * @param string $expectedUri
      */
-    public function shouldSendRequest()
+    public function shouldSendGetRequest($endpoint, array $params, $expectedUri)
     {
-        /** @var \PHPUnit_Framework_MockObject_MockObject|ApiMethodInterface $apiMethod */
-        $apiMethod = $this->getMockForAbstractClass(ApiMethodInterface::class);
+        $response = static::$messageFactory->createResponse(200, null, [], '{}');
+        $expectedHeaders = [];
 
-        $apiMethod->expects(static::once())
-            ->method('getRequestMethod')
-            ->willReturn('RequestMethod');
+        $httpClient = $this->getHttpClientMock(['get']);
+        $httpClient->expects(static::once())
+            ->method('get')
+            ->with($expectedUri, $expectedHeaders)
+            ->willReturn($response);
 
-        $apiMethod->expects(static::once())
-            ->method('getRequestUri')
-            ->willReturn('RequestUri');
-
-        $apiMethod->expects(static::once())
-            ->method('getRequestHeaders')
-            ->willReturn(['RequestHeaders']);
-
-        $apiMethod->expects(static::once())
-            ->method('getRequestBody')
-            ->willReturn('RequestBody');
-
-        $httpClient = $this->getHttpClient('RequestMethod', 'RequestUri', ['RequestHeaders'], 'RequestBody');
         $client = new Client($httpClient);
 
-        static::assertEquals($this->getExpectedApiResponse(), $client->sendRequest($apiMethod));
+        static::assertEquals([], $client->get($endpoint, $params));
+    }
+
+    /**
+     * @see shouldSendGetRequest
+     *
+     * @return array
+     */
+    public function providerSendGetRequest()
+    {
+        return [
+            ['/endpoint', [], '/endpoint'],
+            ['/endpoint?', [], '/endpoint'],
+            ['/endpoint&', [], '/endpoint'],
+            ['/endpoint?param=value', [], '/endpoint?param=value'],
+            ['/endpoint', ['param' => 'value'], '/endpoint?param=value'],
+            ['/endpoint?param1=value1', ['param2' => 'value2'], '/endpoint?param1=value1&param2=value2'],
+        ];
     }
 
     /**
      * @test
+     * @dataProvider providerSendPostRequest
+     *
+     * @param string $endpoint
+     * @param array  $params
+     * @param string $expectedUri
+     * @param string $expectedBody
      */
-    public function shouldGetPracticeInfo()
+    public function shouldSendPostRequest($endpoint, array $params, $expectedUri, $expectedBody)
     {
-        $practiceInfo = new PracticeInfoMethod();
+        $response = static::$messageFactory->createResponse(200, null, [], '{}');
+        $expectedHeaders = [
+            'Content-Type' => 'application/x-www-form-urlencoded',
+        ];
 
-        $this->assertPracticeInfo($practiceInfo, null, null);
+        $httpClient = $this->getHttpClientMock(['post']);
+        $httpClient->expects(static::once())
+            ->method('post')
+            ->with($expectedUri, $expectedHeaders, $expectedBody)
+            ->willReturn($response);
+
+        $client = new Client($httpClient);
+
+        static::assertEquals([], $client->post($endpoint, $params));
+    }
+
+    /**
+     * @see shouldSendPostRequest
+     *
+     * @return array
+     */
+    public function providerSendPostRequest()
+    {
+        return [
+            ['/endpoint', [], '/endpoint', ''],
+            ['/endpoint?param1=value1', ['param2' => 'value2'], '/endpoint?param1=value1', 'param2=value2'],
+            ['/endpoint', ['param1' => 'value1', 'param2' => 'value2'], '/endpoint', 'param1=value1&param2=value2'],
+        ];
     }
 
     /**
      * @test
+     * @dataProvider providerReplacePostHeaders
+     *
+     * @param array $headers
+     * @param array $expectedHeaders
      */
-    public function shouldGetPracticeInfoWithLimit()
+    public function shouldReplacePostHeaders(array $headers, array $expectedHeaders)
     {
-        $practiceInfo = new PracticeInfoMethod();
-        $practiceInfo->setLimit($this->requestLimit);
+        $response = static::$messageFactory->createResponse(200, null, [], '{}');
 
-        $this->assertPracticeInfo($practiceInfo, $this->requestLimit, null);
+        $httpClient = $this->getHttpClientMock(['post']);
+        $httpClient->expects(static::once())
+            ->method('post')
+            ->with('/', $expectedHeaders, '')
+            ->willReturn($response);
+
+        $client = new Client($httpClient);
+
+        static::assertEquals([], $client->post('/', [], $headers));
     }
 
     /**
-     * @test
+     * @see shouldReplacePostHeaders
+     *
+     * @return array
      */
-    public function shouldGetPracticeInfoWithOffset()
+    public function providerReplacePostHeaders()
     {
-        $practiceInfo = new PracticeInfoMethod();
-        $practiceInfo->setOffset($this->requestOffset);
-
-        $this->assertPracticeInfo($practiceInfo, null, $this->requestOffset);
+        return [
+            [
+                [],
+                [
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                ],
+            ],
+            [
+                [
+                    'Accept' => 'application/pdf',
+                ],
+                [
+                    'Accept' => 'application/pdf',
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                ],
+            ],
+            [
+                [
+                    'Content-Type' => 'application/json;charset=UTF-8',
+                ],
+                [
+                    'Content-Type' => 'application/json;charset=UTF-8',
+                ],
+            ],
+        ];
     }
 
     /**
-     * @test
+     * @param array $methods
+     *
+     * @return \PHPUnit_Framework_MockObject_MockObject|HttpClient
      */
-    public function shouldGetPracticeInfoWithLimitAndOffset()
+    protected function getHttpClientMock(array $methods)
     {
-        $practiceInfo = new PracticeInfoMethod();
-        $practiceInfo->setLimit($this->requestLimit)->setOffset($this->requestOffset);
-
-        $this->assertPracticeInfo($practiceInfo, $this->requestLimit, $this->requestOffset);
-    }
-
-    /**
-     * @param PracticeInfoMethod $practiceInfo
-     * @param int|null           $limit
-     * @param int|null           $offset
-     */
-    protected function assertPracticeInfo(PracticeInfoMethod $practiceInfo, $limit, $offset)
-    {
-        /** @var \PHPUnit_Framework_MockObject_MockObject|Client $client */
-        $client = $this->getMockBuilder(Client::class)
+        return $this->getMockBuilder(HttpClient::class)
             ->disableOriginalConstructor()
-            ->setMethods(['sendRequest'])
+            ->setMethods($methods)
             ->getMock();
-
-        $client->expects(static::once())
-            ->method('sendRequest')
-            ->with($practiceInfo)
-            ->willReturn([]);
-
-        static::assertEquals([], $client->practiceInfo($limit, $offset));
     }
 }

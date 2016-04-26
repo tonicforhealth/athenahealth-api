@@ -72,8 +72,5 @@ Finally you can construct an API client:
 use TonicForHealth\AthenaHealth\Client;
 
 $apiClient = new Client($apiHttpClient);
-$practiceInfo = $apiClient->practiceInfo();
+$practiceInfo = $apiClient->get('/1/practiceinfo');
 ```
-
-A full list of supported API methods with usage examples you can find
-[here](https://github.com/tonicforhealth/athenahealth-api/wiki).
