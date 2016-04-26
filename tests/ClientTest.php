@@ -9,12 +9,8 @@
  */
 namespace TonicForHealth\AthenaHealth\Tests;
 
-use GuzzleHttp\Psr7\Response;
-use TonicForHealth\AthenaHealth\API\Appointments;
-use TonicForHealth\AthenaHealth\API\Patients;
-use TonicForHealth\AthenaHealth\API\Practice;
-use TonicForHealth\AthenaHealth\Authenticator\AuthenticatorInterface;
-use TonicForHealth\AthenaHealth\Authenticator\VoidAuthenticator;
+use Http\Discovery\MessageFactoryDiscovery;
+use Http\Message\MessageFactory;
 use TonicForHealth\AthenaHealth\Client;
 use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
 
@@ -26,203 +22,156 @@ use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
 class ClientTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @test
-     * @small
-     * @dataProvider providerRequestUri
-     *
-     * @param string $baseUri
-     * @param string $uri
-     * @param string $expectedUri
+     * @var MessageFactory
      */
-    public function shouldAuthenticateAndGet($baseUri, $uri, $expectedUri)
+    protected static $messageFactory;
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function setUpBeforeClass()
     {
-        $headers = ['X-Some-Header' => microtime(true)];
-        $response = new Response();
+        parent::setUpBeforeClass();
 
-        $httpClientMock = $this->getHttpClientMock(['get']);
-        $httpClientMock->expects(static::once())
-            ->method('get')
-            ->with($expectedUri, $headers)
-            ->willReturn($response);
-
-        $authenticatorMock = $this->getAuthenticatorMock($httpClientMock);
-
-        $apiClient = new Client($httpClientMock, $authenticatorMock);
-        $apiClient->setBaseUri($baseUri);
-
-        static::assertSame($response, $apiClient->get($uri, $headers));
+        static::$messageFactory = MessageFactoryDiscovery::find();
     }
 
     /**
      * @test
-     * @small
-     * @dataProvider providerRequestUri
+     * @dataProvider providerSendGetRequest
      *
-     * @param string $baseUri
-     * @param string $uri
+     * @param string $endpoint
+     * @param array  $params
      * @param string $expectedUri
      */
-    public function shouldAuthenticateAndPost($baseUri, $uri, $expectedUri)
+    public function shouldSendGetRequest($endpoint, array $params, $expectedUri)
     {
-        $headers = ['X-Some-Header' => microtime(true)];
-        $body = md5(microtime(true));
-        $response = new Response();
+        $response = static::$messageFactory->createResponse(200, null, [], '{}');
+        $expectedHeaders = [];
 
-        $httpClientMock = $this->getHttpClientMock(['post']);
-        $httpClientMock->expects(static::once())
+        $httpClient = $this->getHttpClientMock(['get']);
+        $httpClient->expects(static::once())
+            ->method('get')
+            ->with($expectedUri, $expectedHeaders)
+            ->willReturn($response);
+
+        $client = new Client($httpClient);
+
+        static::assertEquals([], $client->get($endpoint, $params));
+    }
+
+    /**
+     * @see shouldSendGetRequest
+     *
+     * @return array
+     */
+    public function providerSendGetRequest()
+    {
+        return [
+            ['/endpoint', [], '/endpoint'],
+            ['/endpoint?', [], '/endpoint'],
+            ['/endpoint&', [], '/endpoint'],
+            ['/endpoint?param=value', [], '/endpoint?param=value'],
+            ['/endpoint', ['param' => 'value'], '/endpoint?param=value'],
+            ['/endpoint?param1=value1', ['param2' => 'value2'], '/endpoint?param1=value1&param2=value2'],
+        ];
+    }
+
+    /**
+     * @test
+     * @dataProvider providerSendPostRequest
+     *
+     * @param string $endpoint
+     * @param array  $params
+     * @param string $expectedUri
+     * @param string $expectedBody
+     */
+    public function shouldSendPostRequest($endpoint, array $params, $expectedUri, $expectedBody)
+    {
+        $response = static::$messageFactory->createResponse(200, null, [], '{}');
+        $expectedHeaders = [
+            'Content-Type' => 'application/x-www-form-urlencoded',
+        ];
+
+        $httpClient = $this->getHttpClientMock(['post']);
+        $httpClient->expects(static::once())
             ->method('post')
-            ->with($expectedUri, $headers, $body)
+            ->with($expectedUri, $expectedHeaders, $expectedBody)
             ->willReturn($response);
 
-        $authenticatorMock = $this->getAuthenticatorMock($httpClientMock);
+        $client = new Client($httpClient);
 
-        $apiClient = new Client($httpClientMock, $authenticatorMock);
-        $apiClient->setBaseUri($baseUri);
-
-        static::assertSame($response, $apiClient->post($uri, $headers, $body));
+        static::assertEquals([], $client->post($endpoint, $params));
     }
 
     /**
-     * @see shouldAuthenticateAndGet
-     * @see shouldAuthenticateAndPost
+     * @see shouldSendPostRequest
      *
      * @return array
      */
-    public function providerRequestUri()
+    public function providerSendPostRequest()
     {
         return [
-            ['', '/some-path', '/some-path'],
-            ['http://localhost', '/some-path', 'http://localhost/some-path'],
-            ['http://localhost/', '/some-path', 'http://localhost/some-path'],
+            ['/endpoint', [], '/endpoint', ''],
+            ['/endpoint?param1=value1', ['param2' => 'value2'], '/endpoint?param1=value1', 'param2=value2'],
+            ['/endpoint', ['param1' => 'value1', 'param2' => 'value2'], '/endpoint', 'param1=value1&param2=value2'],
         ];
     }
 
     /**
      * @test
-     * @small
-     * @dataProvider providerSendPracticeInfoRequest
+     * @dataProvider providerReplacePostHeaders
      *
-     * @param string   $baseUri
-     * @param int|null $limit
-     * @param int|null $offset
-     * @param string   $expectedUri
+     * @param array $headers
+     * @param array $expectedHeaders
      */
-    public function shoulSendPracticeInfoRequest($baseUri, $limit, $offset, $expectedUri)
+    public function shouldReplacePostHeaders(array $headers, array $expectedHeaders)
     {
-        $response = new Response();
+        $response = static::$messageFactory->createResponse(200, null, [], '{}');
 
-        $httpClientMock = $this->getHttpClientMock(['get']);
-        $httpClientMock->expects(static::once())
-            ->method('get')
-            ->with($expectedUri, [])
+        $httpClient = $this->getHttpClientMock(['post']);
+        $httpClient->expects(static::once())
+            ->method('post')
+            ->with('/', $expectedHeaders, '')
             ->willReturn($response);
 
-        $authenticatorMock = $this->getAuthenticatorMock($httpClientMock);
+        $client = new Client($httpClient);
 
-        $apiClient = new Client($httpClientMock, $authenticatorMock);
-        $apiClient->setBaseUri($baseUri);
-
-        static::assertSame($response, $apiClient->practiceInfo($limit, $offset));
+        static::assertEquals([], $client->post('/', [], $headers));
     }
 
     /**
-     * @see shoulSendPracticeInfoRequest
+     * @see shouldReplacePostHeaders
      *
      * @return array
      */
-    public function providerSendPracticeInfoRequest()
+    public function providerReplacePostHeaders()
     {
         return [
-            ['http://localhost', null, null, 'http://localhost/1/practiceinfo'],
-            ['http://localhost', 1, null, 'http://localhost/1/practiceinfo?limit=1'],
-            ['http://localhost/', null, 2, 'http://localhost/1/practiceinfo?offset=2'],
-            ['http://localhost/', 1, 2, 'http://localhost/1/practiceinfo?limit=1&offset=2'],
+            [
+                [],
+                [
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                ],
+            ],
+            [
+                [
+                    'Accept' => 'application/pdf',
+                ],
+                [
+                    'Accept' => 'application/pdf',
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                ],
+            ],
+            [
+                [
+                    'Content-Type' => 'application/json;charset=UTF-8',
+                ],
+                [
+                    'Content-Type' => 'application/json;charset=UTF-8',
+                ],
+            ],
         ];
-    }
-
-    /**
-     * @test
-     * @small
-     *
-     * @expectedException \BadMethodCallException
-     * @expectedExceptionMessage Undefined API instance called: "abc".
-     * @expectedExceptionCode 0
-     */
-    public function shouldThrowUndefinedAPIException()
-    {
-        $httpClientMock = $this->getHttpClientMock();
-        $apiClient = new Client($httpClientMock, new VoidAuthenticator());
-
-        /** @noinspection PhpUndefinedMethodInspection */
-        $apiClient->abc();
-    }
-
-    /**
-     * @test
-     * @small
-     *
-     * @expectedException \BadMethodCallException
-     * @expectedExceptionMessage Practice ID is empty.
-     * @expectedExceptionCode 0
-     */
-    public function shouldThrowEmptyPracticeIdException()
-    {
-        $httpClientMock = $this->getHttpClientMock();
-        $apiClient = new Client($httpClientMock, new VoidAuthenticator());
-
-        $apiClient->practice();
-    }
-
-    /**
-     * @test
-     * @small
-     */
-    public function shouldReturnPracticeApi()
-    {
-        $httpClientMock = $this->getHttpClientMock();
-        $apiClient = new Client($httpClientMock, new VoidAuthenticator());
-
-        static::assertInstanceOf(Practice::class, $apiClient->setPracticeId(1)->practice());
-    }
-
-    /**
-     * @test
-     * @small
-     */
-    public function shouldReturnPatientsApi()
-    {
-        $httpClientMock = $this->getHttpClientMock();
-        $apiClient = new Client($httpClientMock, new VoidAuthenticator());
-
-        static::assertInstanceOf(Patients::class, $apiClient->setPracticeId(1)->patients());
-    }
-
-    /**
-     * @test
-     * @small
-     */
-    public function shouldReturnAppointmentsApi()
-    {
-        $httpClientMock = $this->getHttpClientMock();
-        $apiClient = new Client($httpClientMock, new VoidAuthenticator());
-
-        static::assertInstanceOf(Appointments::class, $apiClient->setPracticeId(1)->appointments());
-    }
-
-    /**
-     * @param HttpClient $httpClient
-     *
-     * @return \PHPUnit_Framework_MockObject_MockObject|AuthenticatorInterface
-     */
-    protected function getAuthenticatorMock(HttpClient $httpClient)
-    {
-        $authenticatorMock = $this->getMockForAbstractClass(AuthenticatorInterface::class);
-        $authenticatorMock->expects(static::once())
-            ->method('authenticate')
-            ->with($httpClient)
-            ->willReturn($httpClient);
-
-        return $authenticatorMock;
     }
 
     /**
@@ -230,7 +179,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
      *
      * @return \PHPUnit_Framework_MockObject_MockObject|HttpClient
      */
-    protected function getHttpClientMock(array $methods = [])
+    protected function getHttpClientMock(array $methods)
     {
         return $this->getMockBuilder(HttpClient::class)
             ->disableOriginalConstructor()

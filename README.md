@@ -26,23 +26,51 @@ $ composer require tonicforhealth/athenahealth-api
 
 ## Usage
 
+The first step is to define a `\Http\Client\HttpClient` object that will be used to send HTTP requests and
+a `\Http\Message\MessageFactory` object that will be used to generate HTTP messages.
+
+The recommended way to do this is to use the [Discovery](http://docs.php-http.org/en/latest/discovery.html) services:
+
 ```php
 <?php
 
+use Http\Discovery\HttpClientDiscovery;
+use Http\Discovery\MessageFactoryDiscovery;
+
+$baseHttpClient = HttpClientDiscovery::find();
+$messageFactory = MessageFactoryDiscovery::find();
+```
+
+After that you must define the following chain of objects with your API credentials to establish
+a correct authentication process:
+
+```php
+<?php
+
+use TonicForHealth\AthenaHealth\Authenticator\BasicAuthenticator;
 use TonicForHealth\AthenaHealth\Authenticator\BearerAuthenticator;
-use TonicForHealth\AthenaHealth\Client;
 use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
 
-$httpClient = new HttpClient();
-
-$authenticator = new BearerAuthenticator();
-$authenticator->setAuthUri('https://api.athenahealth.com/oauthpreview/token')
-    ->setClientId('YOUR-CLIENT-ID')
+$basicAuthenticator = new BasicAuthenticator();
+$basicAuthenticator->setClientId('YOUR-CLIENT-ID')
     ->setClientSecret('YOUR-CLIENT-SECRET');
 
-$apiClient = new Client($httpClient, $authenticator);
-$apiClient->setBaseUri('https://api.athenahealth.com/preview1');
+$authHttpClient = new HttpClient($baseHttpClient, $messageFactory);
+$authHttpClient->setAuthenticator($basicAuthenticator)
+    ->setBaseUri('https://api.athenahealth.com/oauthpreview');
 
-$response = $practiceInfo = $apiClient->practiceInfo();
-$content = (string) $response->getBody();
+$apiHttpClient = new HttpClient($baseHttpClient, $messageFactory);
+$apiHttpClient->setAuthenticator(new BearerAuthenticator($authHttpClient))
+    ->setBaseUri('https://api.athenahealth.com/preview1');
+```
+
+Finally you can construct an API client:
+
+```php
+<?php
+
+use TonicForHealth\AthenaHealth\Client;
+
+$apiClient = new Client($apiHttpClient);
+$practiceInfo = $apiClient->get('/1/practiceinfo');
 ```

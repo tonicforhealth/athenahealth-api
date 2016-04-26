@@ -9,9 +9,7 @@
  */
 namespace TonicForHealth\AthenaHealth\Authenticator;
 
-use Http\Message\Authentication\BasicAuth;
 use Http\Message\Authentication\Bearer;
-use Psr\Http\Message\UriInterface;
 use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
 
 /**
@@ -19,27 +17,14 @@ use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
  *
  * @author Vitalii Ekert <vitalii.ekert@tonicforhealth.com>
  */
-class BearerAuthenticator implements AuthenticatorInterface
+class BearerAuthenticator extends AbstractAuthenticator
 {
-    /**
-     * @var string
-     */
-    protected $clientId;
+    const AUTH_TOKEN_URI = '/token';
 
     /**
-     * @var string
+     * @var HttpClient
      */
-    protected $clientSecret;
-
-    /**
-     * @var string
-     */
-    protected $authUri;
-
-    /**
-     * @var string
-     */
-    protected $token;
+    protected $httpClient;
 
     /**
      * @var int
@@ -47,86 +32,47 @@ class BearerAuthenticator implements AuthenticatorInterface
     protected $tokenExpiresAt;
 
     /**
-     * @param string $clientId
+     * BearerAuthenticator constructor.
      *
-     * @return $this
+     * @param HttpClient $httpClient
      */
-    public function setClientId($clientId)
+    public function __construct(HttpClient $httpClient)
     {
-        $this->clientId = (string) $clientId;
-
-        return $this;
-    }
-
-    /**
-     * @param string $clientSecret
-     *
-     * @return $this
-     */
-    public function setClientSecret($clientSecret)
-    {
-        $this->clientSecret = (string) $clientSecret;
-
-        return $this;
-    }
-
-    /**
-     * @param string|UriInterface $authUri
-     *
-     * @return $this
-     */
-    public function setAuthUri($authUri)
-    {
-        $this->authUri = (string) $authUri;
-
-        return $this;
+        $this->httpClient = $httpClient;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function authenticate(HttpClient $httpClient)
+    protected function isAuthenticated()
     {
-        if (!$this->isTokenValid()) {
-            $this->refreshToken($httpClient);
-        }
-
-        return $httpClient->setAuthentication(new Bearer($this->token));
-    }
-
-    /**
-     * @param HttpClient $httpClient
-     *
-     * @return $this
-     *
-     * @throws \Http\Client\Exception
-     */
-    protected function refreshToken(HttpClient $httpClient)
-    {
-        $this->tokenExpiresAt = time();
-
-        $basicAuth = new BasicAuth($this->clientId, $this->clientSecret);
-        $httpClient->setAuthentication($basicAuth);
-
-        $response = $httpClient->post(
-            $this->authUri,
-            ['Content-Type' => 'application/x-www-form-urlencoded'],
-            http_build_query(['grant_type' => 'client_credentials'])
-        );
-
-        $content = json_decode($response->getBody(), true);
-
-        $this->token = $content['access_token'];
-        $this->tokenExpiresAt += $content['expires_in'];
-
-        return $this;
+        return parent::isAuthenticated() && !$this->isTokenExpired();
     }
 
     /**
      * @return bool
      */
-    protected function isTokenValid()
+    protected function isTokenExpired()
     {
-        return null !== $this->token && time() < $this->tokenExpiresAt;
+        return time() >= $this->tokenExpiresAt;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function authenticate()
+    {
+        $this->tokenExpiresAt = time();
+
+        $response = $this->httpClient->post(
+            static::AUTH_TOKEN_URI,
+            ['Content-Type' => 'application/x-www-form-urlencoded'],
+            http_build_query(['grant_type' => 'client_credentials'])
+        );
+
+        $content = json_decode($response->getBody(), true);
+        $this->tokenExpiresAt += $content['expires_in'];
+
+        return new Bearer($content['access_token']);
     }
 }
