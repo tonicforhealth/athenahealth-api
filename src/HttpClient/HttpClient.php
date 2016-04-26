@@ -10,12 +10,6 @@
 namespace TonicForHealth\AthenaHealth\HttpClient;
 
 use Http\Client\Common\HttpMethodsClient;
-use Http\Client\HttpClient as BaseHttpClient;
-use Http\Client\Plugin\ErrorPlugin;
-use Http\Client\Plugin\Exception\ClientErrorException;
-use Http\Client\Plugin\Exception\ServerErrorException;
-use Http\Client\Plugin\PluginClient;
-use Http\Message\MessageFactory;
 use Psr\Http\Message\RequestInterface;
 use TonicForHealth\AthenaHealth\Authenticator\AuthenticatorInterface;
 
@@ -35,17 +29,6 @@ class HttpClient extends HttpMethodsClient
      * @var AuthenticatorInterface
      */
     protected $authenticator;
-
-    /**
-     * {@inheritdoc}
-     */
-    public function __construct(BaseHttpClient $httpClient, MessageFactory $messageFactory)
-    {
-        /** @noinspection ExceptionsAnnotatingAndHandlingInspection */
-        $pluginClient = new PluginClient($httpClient, [new ErrorPlugin()]);
-
-        parent::__construct($pluginClient, $messageFactory);
-    }
 
     /**
      * @param string $baseUri
@@ -73,9 +56,6 @@ class HttpClient extends HttpMethodsClient
 
     /**
      * {@inheritdoc}
-     *
-     * @throws ClientErrorException If response status code is a 4xx
-     * @throws ServerErrorException If response status code is a 5xx
      */
     public function send($method, $uri, array $headers = [], $body = null)
     {
@@ -84,9 +64,6 @@ class HttpClient extends HttpMethodsClient
 
     /**
      * {@inheritdoc}
-     *
-     * @throws ClientErrorException If response status code is a 4xx
-     * @throws ServerErrorException If response status code is a 5xx
      */
     public function sendRequest(RequestInterface $request)
     {
