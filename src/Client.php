@@ -10,8 +10,6 @@
 namespace TonicForHealth\AthenaHealth;
 
 use Http\Client\Exception;
-use Http\Client\Plugin\Exception\ClientErrorException;
-use Http\Client\Plugin\Exception\ServerErrorException;
 use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
 
 /**
@@ -44,9 +42,7 @@ class Client
      *
      * @return array
      *
-     * @throws ClientErrorException If response status code is a 4xx
-     * @throws ServerErrorException If response status code is a 5xx
-     * @throws Exception            If an error happens during processing the request
+     * @throws Exception If an error happens during processing the request
      */
     public function get($endpoint, array $params = [])
     {
@@ -67,9 +63,7 @@ class Client
      *
      * @return array
      *
-     * @throws ClientErrorException If response status code is a 4xx
-     * @throws ServerErrorException If response status code is a 5xx
-     * @throws Exception            If an error happens during processing the request
+     * @throws Exception If an error happens during processing the request
      */
     public function post($endpoint, array $params, array $headers = [])
     {
