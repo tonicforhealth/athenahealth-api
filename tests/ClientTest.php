@@ -46,7 +46,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
      */
     public function shouldSendGetRequest($endpoint, array $params, $expectedUri)
     {
-        $response = static::$messageFactory->createResponse(200, null, [], '{}');
+        $response = static::$messageFactory->createResponse();
         $expectedHeaders = [];
 
         $httpClient = $this->getHttpClientMock(['get']);
@@ -57,7 +57,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
         $client = new Client($httpClient);
 
-        static::assertEquals([], $client->get($endpoint, $params));
+        static::assertSame($response, $client->get($endpoint, $params));
     }
 
     /**
@@ -88,7 +88,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
      */
     public function shouldSendPostRequest($endpoint, array $params, $expectedUri, $expectedBody)
     {
-        $response = static::$messageFactory->createResponse(200, null, [], '{}');
+        $response = static::$messageFactory->createResponse();
         $expectedHeaders = [
             'Content-Type' => 'application/x-www-form-urlencoded',
         ];
@@ -101,7 +101,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
         $client = new Client($httpClient);
 
-        static::assertEquals([], $client->post($endpoint, $params));
+        static::assertSame($response, $client->post($endpoint, $params));
     }
 
     /**
@@ -137,7 +137,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
 
         $client = new Client($httpClient);
 
-        static::assertEquals([], $client->post('/', [], $headers));
+        static::assertSame($response, $client->post('/', [], $headers));
     }
 
     /**

@@ -59,10 +59,10 @@ class FunctionalTest extends \PHPUnit_Framework_TestCase
 
         $client = $this->getClient([
             $this->getAuthResponse(),
-            $this->getHttpResponse('{}'),
+            $this->getHttpResponse(),
         ]);
 
-        static::assertEquals([], $client->get('/endpoint', ['param1' => 1, 'param2' => 2]));
+        static::assertInstanceOf(ResponseInterface::class, $client->get('/endpoint', ['param1' => 1, 'param2' => 2]));
         static::assertCount(2, $this->container);
 
         $this->assertGetRequest($this->container[1]['request'], $expectedUri);
@@ -78,10 +78,10 @@ class FunctionalTest extends \PHPUnit_Framework_TestCase
 
         $client = $this->getClient([
             $this->getAuthResponse(),
-            $this->getHttpResponse('{}'),
+            $this->getHttpResponse(),
         ]);
 
-        static::assertEquals([], $client->post('/endpoint', ['param1' => 1, 'param2' => 2]));
+        static::assertInstanceOf(ResponseInterface::class, $client->post('/endpoint', ['param1' => 1, 'param2' => 2]));
         static::assertCount(2, $this->container);
 
         $this->assertPostRequest($this->container[1]['request'], $expectedUri, $expectedBody);
@@ -96,12 +96,12 @@ class FunctionalTest extends \PHPUnit_Framework_TestCase
 
         $client = $this->getClient([
             $this->getAuthResponse(),
-            $this->getHttpResponse('{}'),
-            $this->getHttpResponse('{}'),
+            $this->getHttpResponse(),
+            $this->getHttpResponse(),
         ]);
 
-        static::assertEquals([], $client->get('/endpoint'));
-        static::assertEquals([], $client->post('/endpoint', []));
+        static::assertInstanceOf(ResponseInterface::class, $client->get('/endpoint'));
+        static::assertInstanceOf(ResponseInterface::class, $client->post('/endpoint', []));
         static::assertCount(3, $this->container);
 
         $this->assertGetRequest($this->container[1]['request'], $expectedUri);
@@ -117,13 +117,13 @@ class FunctionalTest extends \PHPUnit_Framework_TestCase
 
         $client = $this->getClient([
             $this->getAuthResponse(0),
-            $this->getHttpResponse('{}'),
+            $this->getHttpResponse(),
             $this->getAuthResponse(),
-            $this->getHttpResponse('{}'),
+            $this->getHttpResponse(),
         ]);
 
-        static::assertEquals([], $client->get('/endpoint'));
-        static::assertEquals([], $client->post('/endpoint', []));
+        static::assertInstanceOf(ResponseInterface::class, $client->get('/endpoint'));
+        static::assertInstanceOf(ResponseInterface::class, $client->post('/endpoint', []));
         static::assertCount(4, $this->container);
 
         $this->assertGetRequest($this->container[1]['request'], $expectedUri);
@@ -233,11 +233,11 @@ class FunctionalTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @param string $responseBody
+     * @param string|null $responseBody
      *
      * @return ResponseInterface
      */
-    protected function getHttpResponse($responseBody)
+    protected function getHttpResponse($responseBody = null)
     {
         return static::$messageFactory->createResponse(200, null, [], $responseBody);
     }
