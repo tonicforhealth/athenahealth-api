@@ -10,6 +10,7 @@
 namespace TonicForHealth\AthenaHealth;
 
 use Http\Client\Exception;
+use Psr\Http\Message\ResponseInterface;
 use TonicForHealth\AthenaHealth\HttpClient\HttpClient;
 
 /**
@@ -40,7 +41,7 @@ class Client
      * @param string $endpoint The API endpoint
      * @param array  $params   (Optional) The API method parameters
      *
-     * @return array
+     * @return ResponseInterface
      *
      * @throws Exception If an error happens during processing the request
      */
@@ -49,9 +50,7 @@ class Client
         $format = (false === strpos($endpoint, '?')) ? '%s?%s' : '%s&%s';
         $uri = rtrim(sprintf($format, $endpoint, http_build_query($params)), '?&');
 
-        $response = $this->httpClient->get($uri);
-
-        return json_decode($response->getBody(), true);
+        return $this->httpClient->get($uri);
     }
 
     /**
@@ -61,7 +60,7 @@ class Client
      * @param array  $params   The API method parameters
      * @param array  $headers  (Optional) Additional HTTP headers
      *
-     * @return array
+     * @return ResponseInterface
      *
      * @throws Exception If an error happens during processing the request
      */
@@ -71,12 +70,10 @@ class Client
             'Content-Type' => 'application/x-www-form-urlencoded',
         ];
 
-        $response = $this->httpClient->post(
+        return $this->httpClient->post(
             $endpoint,
             array_merge($baseHeaders, $headers),
             http_build_query($params)
         );
-
-        return json_decode($response->getBody(), true);
     }
 }
